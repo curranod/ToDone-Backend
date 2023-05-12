@@ -6,6 +6,7 @@ const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt')
 const { User, Task } = require('./schemas/User');
+const { time } = require('console');
 
 
 app.use(cors())
@@ -48,14 +49,13 @@ app.post('/login', async (req, res) => {
   const email = req.body.email;
 
   const user = await User.findOne({username: username, email: email});
-  console.log(user)
   if(user) {
     const result = bcrypt.compare(password, user.password)
       if (!result) {
         res.json({success: false, message: 'unable to authenticate'});
       } else {
         const token = jwt.sign({username: user.username}, 'SECRETKEY');
-        res.json({success: true, token: token});
+        res.json({success: true, token: token, userId: user._id});
       }
     } else {
     res.json({success: false, message: 'user not fond'});
@@ -71,7 +71,9 @@ app.post("/:userId/addtasks", async (req, res) => {
     const task = new Task({
       name: req.body.name,
       description: req.body.description,
-      status: req.body.status
+      status: "incomplete",
+      time: req.body.time,
+      date: new Date()
     });
 
     // Save the task to the database
@@ -89,13 +91,48 @@ app.post("/:userId/addtasks", async (req, res) => {
   }
 });
 
+app.put("/tasks/:taskId/start", async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.taskId);
+    task.status = "in-progress";
+    await task.save();
+    res.json(task);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
-app.get("/:userId/tasks", async (req, res) => {
+app.put("/:userId/tasks/:taskId", async (req, res) => {
+  try {
+      const task = await Task.findById(req.params.taskId);
+      task.status = req.body.status;
+      await task.save();
+      res.status(200).json(task);
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
+
+// app.get("/tasks/:userId", async (req, res) => {
+//   const user = await User.findById(req.params.userId);
+//   const currentTask = user.tasks.find(task => task.status === 'future');
+//   res.json(currentTask);
+// });
+
+
+
+
+app.get("/tasks/:userId", async (req, res) => {
+  console.log(`Fetching tasks for user ${req.params.userId}`);
   const user = await User.findById(req.params.userId).populate("tasks");
-  res.json(user.tasks)
-  
-})
-//645996fbf67a92ccba8b9577
+  res.json(user.tasks);
+});
+
 
 
 app.listen(8080, () => {
