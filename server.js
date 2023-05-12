@@ -21,6 +21,11 @@ mongoose.connect('mongodb+srv://curranod840:4w3KLhRyD1dUevTs@todone.3glfliv.mong
 
 //Register and Login--------------------------------------------------------------
 
+app.get('/test', (req, res) => {
+
+  res.send("hello world")
+})
+
 app.post('/register', async (req, res) => {
   const username = req.body.username
   const password = req.body.password
